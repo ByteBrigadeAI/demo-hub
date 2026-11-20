@@ -1,0 +1,100 @@
+name: Reusable demo preparation
+on:
+  workflow_call:
+    inputs:
+      restore_demo:
+        type: boolean
+        default: false
+        description: Restore allowlisted demo source files and reopen demo issues.
+      scan_security:
+        type: boolean
+        default: false
+        description: Run a fresh real CodeQL scan after preparing assets.
+      scan_quality:
+        type: boolean
+        default: false
+        description: Include maintainability and reliability rules in a manual CodeQL scan.
+      secret_revision:
+        type: string
+        default: "1"
+        description: Stable fixture version; change it for a fresh synthetic secret alert.
+      create_pull_requests:
+        type: boolean
+        default: false
+        description: Requires organization policy allowing Actions to create PRs.
+permissions:
+  contents: read
+concurrency:
+  group: prepare-demo-${{ github.repository }}
+  cancel-in-progress: false
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    outputs:
+      sha: ${{ steps.seed.outputs.sha }}
+      languages: ${{ steps.seed.outputs.languages }}
+      restored_files: ${{ steps.seed.outputs.restored_files }}
+      restored_security: ${{ steps.seed.outputs.restored_security }}
+    steps:
+      - name: Checkout demo repository
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - name: Checkout shared demo tooling
+        uses: actions/checkout@v5
+        with:
+          repository: ByteBrigadeAI/demo-hub
+          ref: demo-baseline
+          path: .demo-tools
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Prepare idempotent demo assets
+        id: seed
+        run: python .demo-tools/scripts/seed_demo.py --config .github/demo/scenarios.json
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RESTORE_DEMO: ${{ inputs.restore_demo }}
+          SECRET_REVISION: ${{ inputs.secret_revision }}
+          CREATE_PULL_REQUESTS: ${{ inputs.create_pull_requests }}
+      - name: Save demo asset inventory
+        uses: actions/upload-artifact@v5
+        with:
+          name: demo-assets
+          path: demo-result.json
+          retention-days: 7
+  security:
+    needs: seed
+    if: ${{ inputs.scan_security || inputs.scan_quality || needs.seed.outputs.restored_security == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      security-events: write
+      packages: read
+    strategy:
+      fail-fast: false
+      matrix:
+        language: ${{ fromJSON(needs.seed.outputs.languages) }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.seed.outputs.sha }}
+          persist-credentials: false
+      - uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: none
+          queries: ${{ inputs.scan_quality && 'security-and-quality' || 'security-extended' }}
+      - uses: github/codeql-action/analyze@v4
+        with:
+          sha: ${{ needs.seed.outputs.sha }}
+          ref: refs/heads/${{ github.event.repository.default_branch }}
+          category: /language:${{ matrix.language }}
