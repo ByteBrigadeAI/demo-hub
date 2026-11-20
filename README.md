@@ -55,6 +55,19 @@ reports a comparison link plus **PR not created** instead of attempting a
 forbidden API request. After an owner enables the organization setting and
 the per-repository setting, select **create_pull_requests** to automate this.
 
+## Verified starter assets
+
+| Application | Review PR | Code scanning | Secret scanning issue | Quality finding |
+| --- | --- | --- | --- | --- |
+| AssetTrack | [Badge colors #9](https://github.com/ByteBrigadeAI/assettrack/pull/9) | [SQL injection #2](https://github.com/ByteBrigadeAI/assettrack/security/code-scanning/2) and [#3](https://github.com/ByteBrigadeAI/assettrack/security/code-scanning/3) | [Issue #7](https://github.com/ByteBrigadeAI/assettrack/issues/7), detected AWS-shaped ID and secret | [Unreachable statement #8](https://github.com/ByteBrigadeAI/assettrack/security/code-scanning/8) |
+| GameHub | [Malformed ratings #10](https://github.com/ByteBrigadeAI/gamehub/pull/10) | [DOM XSS #1](https://github.com/ByteBrigadeAI/gamehub/security/code-scanning/1) | [Issue #8](https://github.com/ByteBrigadeAI/gamehub/issues/8), detected AWS-shaped ID and secret | [Overwritten assignment #2](https://github.com/ByteBrigadeAI/gamehub/security/code-scanning/2) |
+
+These are actual GitHub findings, not uploaded mock alerts. The secret alert
+locations point to the listed issue bodies; the generated values were never
+issued by AWS. Both applications' manual preparation and quality runs passed.
+A second unchanged preparation run created zero issues, PRs, or commits and
+skipped scanning. Use the latest run summary for current PR links after resets.
+
 ## A simple 15-minute walkthrough
 
 1. **Show the application and repository.** Start with GameHub. Explain the
@@ -78,10 +91,11 @@ the per-repository setting, select **create_pull_requests** to automate this.
    the AWS-shaped values were generated locally and never issued by AWS.
    Inspect actual validity metadata; do not present a dummy value as active.
    Remove the fixture text and resolve the alert to demonstrate remediation.
-6. **Show code quality.** Run preparation with **scan_quality** and inspect
+6. **Show code quality.** Open the verified quality finding above and inspect
    CodeQL's reliability/maintainability findings in Code scanning. The isolated
    quality tasks include an overwritten funding label and unreachable Python
-   code. Have Copilot explain the defect and add regression tests.
+   code. Have Copilot explain the defect and add regression tests. Run preparation
+   with **scan_quality** before the presentation when a fresh scan is needed.
 7. **Show validation only when needed.** Use **Actions > Run tests** in
    GameHub or **Application checks** in AssetTrack and select the PR branch.
    These checks do not run automatically. Review the run before merging.

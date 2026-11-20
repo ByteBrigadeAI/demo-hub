@@ -246,8 +246,8 @@ class Seeder:
                         "title": scenario["title"], "state": "manual creation required",
                         "url": f"https://github.com/{self.repository}/compare/"
                         f"{branch}...{scenario['branch']}?expand=1",
-                        "note": "Organization policy currently blocks automatic PR creation. "
-                        "Enable the org setting, then run with create_pull_requests=true.",
+                        "note": "Automatic PR creation was not requested. An owner must "
+                        "allow Actions-created PRs, then select create_pull_requests.",
                     })
                     continue
                 issue_number = issues[scenario["issue_key"]]["number"]
